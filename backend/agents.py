@@ -5,6 +5,7 @@ Handles: Trend Analysis, Gap Finding, Idea Generation, Blueprint Creation.
 """
 
 import json
+import os
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
@@ -37,20 +38,38 @@ class TrendAnalysis(BaseModel):
     key_insights: list[str] = Field(description="Key trends observed")
     predicted_hot_domains_2025: list[str] = Field(description="Predicted hot domains for 2025")
 
-# ─────────────────────────── Singleton Loader ────────────────────────────────
+MODELS_TO_TRY = [
+    os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+    "llama3-8b-8192",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it"
+]
 
-_llm: Optional[ChatGroq] = None
+def get_llm(model_name: str = None) -> ChatGroq:
+    model = model_name or config.GROQ_MODEL
+    return ChatGroq(
+        api_key=config.GROQ_API_KEY,
+        model=model,
+        temperature=0.7,
+        max_tokens=4096,
+    )
 
-def get_llm() -> ChatGroq:
-    global _llm
-    if _llm is None:
-        _llm = ChatGroq(
-            api_key=config.GROQ_API_KEY,
-            model=config.GROQ_MODEL,
-            temperature=0.7,
-            max_tokens=4096,
-        )
-    return _llm
+async def safe_ainvoke(prompt_template, input_dict: dict, parse_json: bool = False):
+    """Executes a LangChain prompt with automatic fallback across multiple Groq models on RateLimit (429)."""
+    last_error = None
+    for model_name in MODELS_TO_TRY:
+        try:
+            llm = get_llm(model_name)
+            chain = prompt_template | llm | StrOutputParser()
+            response = await chain.ainvoke(input_dict)
+            return response
+        except Exception as e:
+            err_str = str(e)
+            if "rate_limit_exceeded" in err_str or "429" in err_str or "Limit" in err_str:
+                last_error = e
+                continue
+            raise e
+    raise last_error or Exception("All LLM models rate limited")
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -139,8 +158,7 @@ Return a JSON with these exact keys:
 }}""")
     ])
     
-    chain = prompt | llm | StrOutputParser()
-    response = await chain.ainvoke({"projects": all_projects})
+    response = await safe_ainvoke(prompt, {"projects": all_projects})
     
     # Parse JSON from response
     try:
@@ -192,8 +210,7 @@ Return a JSON array:
 ]""")
     ])
     
-    chain = prompt | llm | StrOutputParser()
-    response = await chain.ainvoke({
+    response = await safe_ainvoke(prompt, {
         "projects": all_projects,
         "domain_filter": domain_filter
     })
@@ -275,8 +292,7 @@ async def generate_ideas(
     
     theme_instruction = f"Theme/Focus: {theme}" if theme else ""
     
-    chain = prompt | llm | StrOutputParser()
-    response = await chain.ainvoke({
+    response = await safe_ainvoke(prompt, {
         "num_ideas": num_ideas,
         "domain": domain,
         "theme_instruction": theme_instruction,
@@ -326,9 +342,7 @@ async def chat_with_advisor(message: str, history: list[dict]) -> str:
     
     messages.append(("human", message))
     
-    prompt = ChatPromptTemplate.from_messages(messages)
-    chain = prompt | llm | StrOutputParser()
-    response = await chain.ainvoke({})
+    response = await safe_ainvoke(prompt, {})
     return response
 
 # ─────────────────────────── Statistics ──────────────────────────────────────

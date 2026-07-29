@@ -8,7 +8,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import json
 import config
-from agents import get_llm, retrieve_similar_projects
+from agents import safe_ainvoke, retrieve_similar_projects
 
 async def generate_blueprint(
     title: str,
@@ -23,8 +23,6 @@ async def generate_blueprint(
     Generate a full professional project blueprint for a SIH submission.
     Returns structured blueprint with all sections.
     """
-    llm = get_llm()
-    
     # RAG: Get similar projects for reference
     query = f"{title} {domain} {problem_statement}"
     similar = retrieve_similar_projects(query, n_results=3)
@@ -148,8 +146,7 @@ Return this EXACT JSON structure:
 }}""")
     ])
     
-    chain = prompt | llm | StrOutputParser()
-    response = await chain.ainvoke({
+    response = await safe_ainvoke(prompt, {
         "title": title,
         "domain": domain,
         "problem_statement": problem_statement,
