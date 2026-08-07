@@ -13,6 +13,24 @@
 </head>
 <body>
 
+  <!-- ── SECURITY LOCK OVERLAY ─────────────────────────────────── -->
+  <div id="security-lock-overlay" class="security-lock-overlay">
+    <div class="lock-card">
+      <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
+      <h2 class="lock-title">SYSTEM LOCKED</h2>
+      <p class="lock-sub">RESTRICTED ACCESS // ENTER SECURITY PASSKEY TO CONTINUE</p>
+      
+      <form id="lock-form" onsubmit="unlockSystem(event)">
+        <div class="input-group">
+          <input type="password" id="passkey-input" class="passkey-input" placeholder="ENTER 6-DIGIT PASSKEY" maxlength="10" required autocomplete="off" />
+          <button type="submit" class="unlock-btn"><i class="fa-solid fa-key"></i> UNLOCK</button>
+        </div>
+        <div id="lock-error-msg" class="lock-error-msg"></div>
+      </form>
+      <div class="lock-footer">[ SIH ADVISOR // SECURITY LAYER ACTIVE ]</div>
+    </div>
+  </div>
+
   <!-- ── Razorpay / Lando Norris Top Header ─────────────────── -->
   <header class="top-header">
     <div class="header-brand">

@@ -1,5 +1,38 @@
 'use strict';
 
+// ── Passcode Security Gate ──────────────────────────────────────────
+const SECRET_PASSKEY = '181222';
+
+function checkSecurityLock() {
+  const savedKey = localStorage.getItem('sih_advisor_passkey');
+  const overlay = document.getElementById('security-lock-overlay');
+  if (savedKey === SECRET_PASSKEY) {
+    if (overlay) overlay.classList.add('unlocked');
+  } else {
+    if (overlay) overlay.classList.remove('unlocked');
+  }
+}
+
+function unlockSystem(event) {
+  event.preventDefault();
+  const input = document.getElementById('passkey-input');
+  const errorMsg = document.getElementById('lock-error-msg');
+  const overlay = document.getElementById('security-lock-overlay');
+  
+  if (input.value === SECRET_PASSKEY) {
+    localStorage.setItem('sih_advisor_passkey', SECRET_PASSKEY);
+    if (overlay) overlay.classList.add('unlocked');
+    showToast('SECURITY CLEARANCE GRANTED // ACCESS UNLOCKED', 'success');
+  } else {
+    errorMsg.innerText = '[ ACCESS DENIED // INVALID SECURITY KEY ]';
+    input.value = '';
+    input.focus();
+    setTimeout(() => { errorMsg.innerText = ''; }, 3000);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', checkSecurityLock);
+
 // ── Config ───────────────────────────────────────────────────────────
 const API = 'https://sih-ai-advisor.onrender.com';
 
