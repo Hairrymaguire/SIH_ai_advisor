@@ -340,8 +340,7 @@ async def chat_with_advisor(message: str, history: list[dict]) -> str:
     for msg in history[-6:]:  # Last 3 exchanges
         messages.append((msg["role"], msg["content"]))
     
-    messages.append(("human", message))
-    
+    prompt = ChatPromptTemplate.from_messages(messages)
     response = await safe_ainvoke(prompt, {})
     return response
 
