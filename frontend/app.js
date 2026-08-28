@@ -682,7 +682,7 @@ async function sendChatMessage() {
     state.chatHistory.push({ role: 'assistant', content: res.response });
   } catch (err) {
     hideTyping();
-    appendMessage('bot', `⚠️ **Backend not connected!**\n\nPlease start the backend server first:\n1. Open a new terminal\n2. cd to \`backend\` folder\n3. Run \`setup.bat\``);
+    appendMessage('bot', `⚠️ **Server connection issue:** ${err.message || 'Server is waking up'}.\n\nIf the server was asleep, please wait 15 seconds and try sending your message again!`);
   }
 }
 
